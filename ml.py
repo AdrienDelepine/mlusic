@@ -98,7 +98,7 @@ def audio_features_NN(num_neighbors=2, features=None):
 def lyric_generation():  # Thanks to https://stackabuse.com/text-generation-with-python-and-tensorflow-keras/
     from nltk.tokenize import RegexpTokenizer
     from nltk.corpus import stopwords
-    from keras.models import Sequential
+    from keras.models import Sequential, load_model
     from keras.layers import Dense, Dropout, LSTM
     from keras.utils import np_utils
     from keras.callbacks import ModelCheckpoint
@@ -163,7 +163,6 @@ def lyric_generation():  # Thanks to https://stackabuse.com/text-generation-with
     filename = "model_weights_saved.hdf5"
     model.load_weights(filename)
     model.compile(loss='categorical_crossentropy', optimizer='adam')
-
     num_to_char = dict((i, c) for i, c in enumerate(chars))
 
     start = np.random.randint(0, len(x_data) - 1)
@@ -189,6 +188,3 @@ def lyric_generation():  # Thanks to https://stackabuse.com/text-generation-with
 # lyrical_similarity()
 # audio_features_NN()
 pick_artists(["Kanye West"])
-print(len(songs))
-songs = songs[50:70]
-lyric_generation()
