@@ -1,6 +1,8 @@
 import os
+import time
 
 import spotipy
+from google.auth.transport import requests
 from spotipy.oauth2 import SpotifyClientCredentials
 import lyricsgenius
 import pandas as pd
@@ -78,18 +80,23 @@ def allArtistSongs(artistsInput):
                 audioFeature = audioFeatures[i]
                 songTitle = trueTrack['name'].replace('Bonus Track', '').replace('Single Version', '').replace(
                     'Album Version', '')
-                genius_song = genius.search_song(songTitle, artistName)
+                time.sleep(3)
+                try:
+                    genius_song = genius.search_song(songTitle, artistName)
+                except requests.exceptions.ReadTimeout:
+                    genius_song = None
                 if genius_song is None:
                     genius_song = None
                 else:
                     genius_song = genius_song.lyrics
-                    if len(re.findall(r'\w+',genius_song)) > 1000:
+                    if len(re.findall(r'\w+', genius_song)) > 1000:
                         genius_song = None
+                    # genius_song.replace('"', "'")
                 if audioFeature is None:
-                    audioFeature = {'danceability': 0.689, 'energy': 0.627, 'key': 2, 'loudness': -4.257, 'mode': 1,
-                                    'speechiness': 0.0607, 'acousticness': 0.176, 'instrumentalness': 0, 'liveness':
-                                        0.0713, 'valence': 0.128, 'tempo': 130.032, 'duration_ms': 269613,
-                                    'time_signature': 4}
+                    audioFeature = {'danceability': None, 'energy': None, 'key': None, 'loudness': None, 'mode': None,
+                                    'speechiness': None, 'acousticness': None, 'instrumentalness': None, 'liveness':
+                                        None, 'valence': None, 'tempo': None, 'duration_ms': None,
+                                    'time_signature': None}
 
                 data.append([trueTrack['name'], artistName, trueTrack['album']['name'], release_dates[rd],
                              trueTrack['duration_ms'], trueTrack['id'], trueTrack['popularity'], trueTrack['explicit'],
@@ -108,7 +115,7 @@ def yipyip(artists):
     #                            'isExplicit', 'acousticness', 'danceability', 'energy', 'instrumentalness', 'key',
     #                            'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence',
     #                            'lyrics'])
-    df = pd.read_csv('C:\\Users\\Adrien\\PycharmProjects\\MusicML\\songs.csv')
+    df = pd.read_csv('C:\\Users\\Adrien\\PycharmProjects\\musicLearning\\songs.csv')
     del df['Unnamed: 0']
     datas = allArtistSongs(artistList)
     if datas is None:
@@ -119,19 +126,14 @@ def yipyip(artists):
         j += 1
         if not data[5] in df.spotifyID.values:
             df.loc[i] = data
-    df.to_csv('C:\\Users\\Adrien\\PycharmProjects\\MusicML\\songs.csv')
+    df.to_csv('C:\\Users\\Adrien\\PycharmProjects\\musicLearning\\songs.csv')
 
 
 stoppers = ['quit', 'q']
-queryType = ""
+query = input('comma seperated list of artists =>')
 
-while not any(stopper in queryType for stopper in stoppers):
-    queryType = input('What do you want (album, artist, playlist, track, show and episode) =>')
-
-    if queryType == 'artist':
-        searchForArtist(input('artist =>'))
-    elif queryType == 'get':
-        yipyip(input('comma seperated list of artists =>'));
-    print('\n')
+while not any(stopper in query for stopper in stoppers):
+    yipyip(query)
+    query = input('comma seperated list of artists =>')
 
 print('done')

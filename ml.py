@@ -5,18 +5,19 @@ import numpy as np
 import pandas as pd
 
 # nltk.download('punkt')
+filepath = 'C:\\Users\\Adrien\\PycharmProjects\\musicLearning\\'
 
-songs = pd.read_csv('C:\\Users\\Adrien\\PycharmProjects\\MusicML\\songs_removedupes.csv')
+songs = pd.read_csv(filepath + 'songs_removedupes.csv')
 del songs['Unnamed: 0']
 
 
 # Removes all duplicates and NaN lyrics
 def remove_dupes_nan():
-    file = pd.read_csv('C:\\Users\\Adrien\\PycharmProjects\\MusicML\\songs.csv')
+    file = pd.read_csv(filepath + 'songs.csv')
     del file['Unnamed: 0']
     file = file.drop_duplicates(subset='lyrics', keep="first")
     file.dropna(inplace=True)
-    file.to_csv('C:\\Users\\Adrien\\PycharmProjects\\musicLearning\\songs_removedupes.csv')
+    file.to_csv(filepath + 'songs_removedupes.csv')
 
 
 def pick_artists(names):
@@ -24,7 +25,7 @@ def pick_artists(names):
     songs = songs.loc[songs['artists'].isin(names)]
 
 
-def lyrical_similarity():
+def create_lyrical_similarity():
     from sklearn.feature_extraction.text import TfidfVectorizer
     from nltk import word_tokenize
     from nltk import PorterStemmer
@@ -48,23 +49,24 @@ def lyrical_similarity():
 
     tfidf = vect.fit_transform(corpus)
     pairwise_similarity = tfidf * tfidf.T
-    print(pairwise_similarity.A)
     arr = pairwise_similarity.toarray()
     np.fill_diagonal(arr, np.nan)
-
-    index = input('index ')
-    while index != "q":
-        input_doc = corpus[int(index)]
-        input_idx = corpus.index(input_doc)
-
-        result_idx = np.nanargmax(arr[input_idx])
-        print(songs.iloc[result_idx]['title'] + ' by ' + songs.iloc[result_idx]['artists'])
-        print(corpus[result_idx][0:200])
-
-        index = input('\nindex ')
+    return arr, corpus
 
 
-def audio_features_NN(num_neighbors=2, features=None):
+def most_lyrically_similar(songName):
+    index = songs.index[songs['title'] == songName].tolist()
+    index = index[0]
+    input_doc = corpus[int(index)]
+    input_idx = corpus.index(input_doc)
+
+    result_idx = np.nanargmax(arr[input_idx])
+    print(songs.iloc[result_idx]['title'] + ' by ' + songs.iloc[result_idx]['artists'])
+    print("Similarity: ", arr[input_idx][result_idx])
+    print(corpus[result_idx][0:400])
+
+
+def audio_features_NN(num_neighbors=5, features=None):
     if features is None:
         features = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'key',
                     'liveness', 'loudness', 'mode', 'speechiness', 'tempo',
@@ -75,24 +77,21 @@ def audio_features_NN(num_neighbors=2, features=None):
 
     nbrs = NearestNeighbors(n_neighbors=num_neighbors, algorithm='ball_tree').fit(X)
     distances, indices = nbrs.kneighbors(X)
-    print(distances[389:])
-    min_index = 0
-    for i in range(len(distances)):
-        if distances[i][1] <= distances[min_index][1]:
-            min_index = i
 
-    print(min_index)
-    index = int(input('index '))
-    while index != "q":
-        print(songs.iloc[index]['title'] + ' by ' + songs.iloc[index]['artists'])
-        neighbors = indices[index][1:]
-        print(neighbors)
-        dists = distances[index][1:]
-        for i in range(len(neighbors)):
-            print(
-                songs.iloc[neighbors[i]]['title'] + ' by ' + songs.iloc[neighbors[i]]['artists'] + '. Distance: ' + str(
-                    dists[i]))
-        index = int(input('\nindex '))
+    return distances, indices
+
+
+def get_audio_features_NN(songName):
+    index = songs.index[songs['title'] == songName].tolist()
+    index = index[0]
+    print(songs.iloc[index]['title'] + ' by ' + songs.iloc[index]['artists'])
+    neighbors = indices[index][1:]
+    print(neighbors)
+    dists = distances[index][1:]
+    for i in range(len(neighbors)):
+        print(
+            songs.iloc[neighbors[i]]['title'] + ' by ' + songs.iloc[neighbors[i]]['artists'] + '. Distance: ' + str(
+                dists[i]))
 
 
 def lyric_generation():  # Thanks to https://stackabuse.com/text-generation-with-python-and-tensorflow-keras/
@@ -185,6 +184,8 @@ def lyric_generation():  # Thanks to https://stackabuse.com/text-generation-with
     print(seq_in)
 
 
-# lyrical_similarity()
-# audio_features_NN()
-pick_artists(["Kanye West"])
+# arr, corpus = create_lyrical_similarity()
+# most_lyrically_similar("I Am A God")
+# distances, indices = audio_features_NN()
+# get_audio_features_NN("I Am A God")
+remove_dupes_nan()
