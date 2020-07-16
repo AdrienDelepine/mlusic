@@ -3,12 +3,21 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pathlib
 
 # nltk.download('punkt')
-filepath = 'C:\\Users\\Adrien\\PycharmProjects\\musicLearning\\'
+filepath = str(pathlib.Path(__file__).parent.absolute()) +'\\'
 
-songs = pd.read_csv(filepath + 'songs_removedupes.csv')
-del songs['Unnamed: 0']
+songs = ""
+indices = None
+distances = None
+corpus = []
+
+
+def open_file(name):
+    global songs
+    songs = pd.read_csv(filepath + name + '.csv')
+    del songs['Unnamed: 0']
 
 
 # Removes all duplicates and NaN lyrics
@@ -32,7 +41,9 @@ def create_lyrical_similarity():
 
     song_lyrics = songs[['lyrics']].values
 
-    corpus = []
+    global corpus
+    global arr
+
     for lyric in song_lyrics:
         corpus.append(lyric[0])
 
@@ -51,7 +62,6 @@ def create_lyrical_similarity():
     pairwise_similarity = tfidf * tfidf.T
     arr = pairwise_similarity.toarray()
     np.fill_diagonal(arr, np.nan)
-    return arr, corpus
 
 
 def most_lyrically_similar(songName):
@@ -74,11 +84,10 @@ def audio_features_NN(num_neighbors=5, features=None):
     from sklearn.neighbors import NearestNeighbors
 
     X = songs[features].to_numpy()
-
+    global distances
+    global indices
     nbrs = NearestNeighbors(n_neighbors=num_neighbors, algorithm='ball_tree').fit(X)
     distances, indices = nbrs.kneighbors(X)
-
-    return distances, indices
 
 
 def get_audio_features_NN(songName):
@@ -94,7 +103,7 @@ def get_audio_features_NN(songName):
                 dists[i]))
 
 
-def lyric_generation():  # Thanks to https://stackabuse.com/text-generation-with-python-and-tensorflow-keras/
+def lyric_generation():  # from https://stackabuse.com/text-generation-with-python-and-tensorflow-keras/
     from nltk.tokenize import RegexpTokenizer
     from nltk.corpus import stopwords
     from keras.models import Sequential, load_model
@@ -182,10 +191,3 @@ def lyric_generation():  # Thanks to https://stackabuse.com/text-generation-with
         pattern.append(index)
         pattern = pattern[1:len(pattern)]
     print(seq_in)
-
-
-# arr, corpus = create_lyrical_similarity()
-# most_lyrically_similar("I Am A God")
-# distances, indices = audio_features_NN()
-# get_audio_features_NN("I Am A God")
-remove_dupes_nan()

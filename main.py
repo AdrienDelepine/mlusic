@@ -7,12 +7,14 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import lyricsgenius
 import pandas as pd
 import re
+import pathlib
 
 genius = lyricsgenius.Genius(os.environ['GENIUS_CLIENT_ACCESS_TOKEN'])
 genius.verbose = False
 genius.remove_section_headers = True
 
 spotify = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
+filepath = str(pathlib.Path(__file__).parent.absolute()) + '\\'
 
 
 def search(inp, stype):
@@ -115,7 +117,7 @@ def yipyip(artists):
     #                            'isExplicit', 'acousticness', 'danceability', 'energy', 'instrumentalness', 'key',
     #                            'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence',
     #                            'lyrics'])
-    df = pd.read_csv('C:\\Users\\Adrien\\PycharmProjects\\musicLearning\\songs.csv')
+    df = pd.read_csv(filepath + 'songs.csv')
     del df['Unnamed: 0']
     datas = allArtistSongs(artistList)
     if datas is None:
@@ -126,7 +128,7 @@ def yipyip(artists):
         j += 1
         if not data[5] in df.spotifyID.values:
             df.loc[i] = data
-    df.to_csv('C:\\Users\\Adrien\\PycharmProjects\\musicLearning\\songs.csv')
+    df.to_csv(filepath + 'songs.csv')
 
 
 stoppers = ['quit', 'q']
