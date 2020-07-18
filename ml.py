@@ -6,6 +6,8 @@ import pandas as pd
 import pathlib
 
 # nltk.download('punkt')
+import requests
+
 filepath = str(pathlib.Path(__file__).parent.absolute()) +'\\'
 
 songs = ""
@@ -76,7 +78,7 @@ def most_lyrically_similar(songName):
     print(corpus[result_idx][0:400])
 
 
-def audio_features_NN(num_neighbors=5, features=None):
+def create_audio_features_NN(num_neighbors=5, features=None):
     if features is None:
         features = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'key',
                     'liveness', 'loudness', 'mode', 'speechiness', 'tempo',
@@ -191,3 +193,22 @@ def lyric_generation():  # from https://stackabuse.com/text-generation-with-pyth
         pattern.append(index)
         pattern = pattern[1:len(pattern)]
     print(seq_in)
+
+
+open_file('songs_removedupes')
+create_lyrical_similarity()
+create_audio_features_NN()
+while True:
+    call = input("\nopen file_name, clean, artist artist_names, lyricsim song_name, audiosim song_name => ")
+    args = call.split(' ')
+    fun = args[0]
+    if fun == 'open':
+        open_file(args[1])
+    elif fun == 'clean':
+        remove_dupes_nan()
+    elif fun == 'artist':
+        pick_artists(list)
+    elif fun == 'lyricsim':
+        most_lyrically_similar(call[call.index(' ') + 1:])
+    elif fun == 'audiosim':
+        get_audio_features_NN(call[call.index(' ') + 1:])

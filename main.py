@@ -16,6 +16,11 @@ genius.remove_section_headers = True
 spotify = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
 filepath = str(pathlib.Path(__file__).parent.absolute()) + '\\'
 
+acquiredAlbums = []
+
+
+# Only gets songs from albums, 20 albums max, doesn't deal with duplicates, lyrics often messed up
+
 
 def search(inp, stype):
     result = spotify.search(q=inp, type=stype, limit=1)[stype + 's']['items']
@@ -37,30 +42,36 @@ def searchForArtist(artistInput):
 # Gets all of an artist's songs (from albums), from list of artists
 def allArtistSongs(artistsInput):
     data = []
-    count = 0
     for artistInput in artistsInput:
         artistName, artistURI = searchForArtist(artistInput)
         if artistURI is None:
             return None
 
-        artistAlbums = spotify.artist_albums(artistURI, album_type='album')['items']
+        artistAlbums = spotify.artist_albums(artistURI, album_type='album', limit=50, country='US')['items']
         # artistSingles = spotify.artist_albums(artist, album_type='single')['items']
         trackIDs, albumTitles, albIDs, release_dates, trackNames = [], [], [], [], []
 
         numAlbs = 0
         for album in artistAlbums:
-            if (not album['name'] in albumTitles) and (numAlbs < 20):
-                albumTitles.append(album['name'])
+            if (not album['name'] in albumTitles) and (not album['id'] in acquiredAlbums) and (numAlbs < 20):
                 albIDs.append(album['id'])
                 numAlbs += 1
+            albumTitles.append(album['name'])
+
+        if not albIDs:
+            print('artist has no albums or all songs are already added')
+            return None
         albums = spotify.albums(albIDs)['albums']
+        albIDs = []
+
         for album in albums:
             tracks = album['tracks']['items']
             for track in tracks:
                 trackID = track['id']
-                if (not trackID in trackIDs) and ("Movie Trailer" not in track['name']) and (
+                if (trackID not in trackIDs) and ("Movie Trailer" not in track['name']) and (
                         "Interlude" not in track['name']) and ("(Live)" not in track['name']):
                     trackIDs.append(trackID)
+                    albIDs.append(album['id'])
                     release_dates.append(album['release_date'])
 
         b = True
@@ -74,33 +85,31 @@ def allArtistSongs(artistsInput):
                 b = False
             trueTracks = spotify.tracks(lessThan51tracks)['tracks']
             audioFeatures = spotify.audio_features(lessThan51tracks)
+
             for i in range(len(trueTracks)):
-                if count % 10 == 0:
-                    print(str(count) + ' / ' + str(len(trackIDs)))
-                count += 1
                 trueTrack = trueTracks[i]
                 audioFeature = audioFeatures[i]
                 songTitle = trueTrack['name'].replace('Bonus Track', '').replace('Single Version', '').replace(
                     'Album Version', '')
-                time.sleep(3)
+                time.sleep(1)
+
                 try:
                     genius_song = genius.search_song(songTitle, artistName)
                 except requests.exceptions.ReadTimeout:
                     genius_song = None
-                if genius_song is None:
-                    genius_song = None
-                else:
+
+                if genius_song is not None:
                     genius_song = genius_song.lyrics
                     if len(re.findall(r'\w+', genius_song)) > 1000:
                         genius_song = None
-                    # genius_song.replace('"', "'")
+
                 if audioFeature is None:
                     audioFeature = {'danceability': None, 'energy': None, 'key': None, 'loudness': None, 'mode': None,
                                     'speechiness': None, 'acousticness': None, 'instrumentalness': None, 'liveness':
                                         None, 'valence': None, 'tempo': None, 'duration_ms': None,
                                     'time_signature': None}
 
-                data.append([trueTrack['name'], artistName, trueTrack['album']['name'], release_dates[rd],
+                data.append([trueTrack['name'], artistName, trueTrack['album']['name'], albIDs[rd], release_dates[rd],
                              trueTrack['duration_ms'], trueTrack['id'], trueTrack['popularity'], trueTrack['explicit'],
                              audioFeature['acousticness'], audioFeature['danceability'], audioFeature['energy'],
                              audioFeature['instrumentalness'], audioFeature['key'], audioFeature['liveness'],
@@ -111,14 +120,19 @@ def allArtistSongs(artistsInput):
     return data
 
 
+# Adds songs from requested artist to songs.csv
 def yipyip(artists):
+    global acquiredAlbums
     artistList = artists.split(',')
-    # df = pd.DataFrame(columns=['title', 'artists', 'album', 'release_date', 'duration', 'spotifyID', 'popularity',
-    #                            'isExplicit', 'acousticness', 'danceability', 'energy', 'instrumentalness', 'key',
-    #                            'liveness', 'loudness', 'mode', 'speechiness', 'tempo', 'time_signature', 'valence',
-    #                            'lyrics'])
+
+    # df = pd.DataFrame(columns=['title', 'artists', 'album', 'albumID', 'release_date', 'duration', 'spotifyID',
+    #                            'popularity', 'isExplicit', 'acousticness', 'danceability', 'energy',
+    #                            'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo',
+    #                            'time_signature', 'valence', 'lyrics'])
     df = pd.read_csv(filepath + 'songs.csv')
     del df['Unnamed: 0']
+
+    acquiredAlbums = df['albumID'].unique()
     datas = allArtistSongs(artistList)
     if datas is None:
         return None
