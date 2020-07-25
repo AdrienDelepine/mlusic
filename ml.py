@@ -6,9 +6,8 @@ import pandas as pd
 import pathlib
 
 # nltk.download('punkt')
-import requests
 
-filepath = str(pathlib.Path(__file__).parent.absolute()) +'\\'
+filepath = str(pathlib.Path(__file__).parent.absolute()) + '\\'
 
 songs = ""
 indices = None
@@ -22,18 +21,9 @@ def open_file(name):
     del songs['Unnamed: 0']
 
 
-# Removes all duplicates and NaN lyrics
-def remove_dupes_nan():
-    file = pd.read_csv(filepath + 'songs.csv')
-    del file['Unnamed: 0']
-    file = file.drop_duplicates(subset='lyrics', keep="first")
-    file.dropna(inplace=True)
-    file.to_csv(filepath + 'songs_removedupes.csv')
-
-
-def pick_artists(names):
+def pick_rows(col, row):
     global songs
-    songs = songs.loc[songs['artists'].isin(names)]
+    songs = songs.loc[songs[col].isin(row)]
 
 
 def create_lyrical_similarity():
@@ -68,7 +58,11 @@ def create_lyrical_similarity():
 
 def most_lyrically_similar(songName):
     index = songs.index[songs['title'] == songName].tolist()
-    index = index[0]
+
+    if type(index) is list:
+        if not index:
+            raise ValueError()
+        index = index[0]
     input_doc = corpus[int(index)]
     input_idx = corpus.index(input_doc)
 
@@ -93,8 +87,13 @@ def create_audio_features_NN(num_neighbors=5, features=None):
 
 
 def get_audio_features_NN(songName):
+    print(songName)
     index = songs.index[songs['title'] == songName].tolist()
-    index = index[0]
+    if type(index) is list:
+        if not index:
+            raise ValueError()
+        index = index[0]
+
     print(songs.iloc[index]['title'] + ' by ' + songs.iloc[index]['artists'])
     neighbors = indices[index][1:]
     print(neighbors)
@@ -192,23 +191,56 @@ def lyric_generation():  # from https://stackabuse.com/text-generation-with-pyth
 
         pattern.append(index)
         pattern = pattern[1:len(pattern)]
-    print(seq_in)
 
 
-open_file('songs_removedupes')
-create_lyrical_similarity()
-create_audio_features_NN()
-while True:
-    call = input("\nopen file_name, clean, artist artist_names, lyricsim song_name, audiosim song_name => ")
-    args = call.split(' ')
-    fun = args[0]
-    if fun == 'open':
-        open_file(args[1])
-    elif fun == 'clean':
-        remove_dupes_nan()
-    elif fun == 'artist':
-        pick_artists(list)
-    elif fun == 'lyricsim':
-        most_lyrically_similar(call[call.index(' ') + 1:])
-    elif fun == 'audiosim':
-        get_audio_features_NN(call[call.index(' ') + 1:])
+def lyricInfo():
+    from nltk import word_tokenize
+    from nltk import PorterStemmer
+
+    lyrics = songs.lyrics.values
+    lyricsJoined = ""
+    for lyric in lyrics:
+        lyricsJoined += lyric + " | "
+
+    def stem_tokens(tokens):
+        return [stemmer.stem(item) for item in tokens]
+
+    def normalize(text):
+        return stem_tokens(word_tokenize(text.lower().translate(remove_punctuation_map)))
+
+    stemmer = PorterStemmer()
+    remove_punctuation_map = dict((ord(char), None) for char in string.punctuation)
+    stemmedLyrics = normalize(lyricsJoined)
+    stemLyricsSet = set(stemmedLyrics)
+    uniqueWordCount = len(stemLyricsSet)
+    totalNumWords = len(stemmedLyrics)
+    avgWordsPerSongs = totalNumWords / len(songs)
+
+    from collections import Counter
+    wordCount = Counter(stemmedLyrics)
+    print(wordCount.most_common(20))
+
+open_file('songs_clean')
+# create_lyrical_similarity()
+# create_audio_features_NN()
+pick_rows('artists', ['Post Malone'])
+lyricInfo()
+
+# while True:
+#     call = input("\nopen file_name, clean, artist artist_names, lyricsim song_name, audiosim song_name => ")
+#     args = call.split(' ')
+#     fun = args[0]
+#     if fun == 'open':
+#         open_file(args[1])
+#     elif fun == 'artist':
+#         pick_artists([call[7:]])
+#     elif fun == 'lyricsim':
+#         try:
+#             most_lyrically_similar(call[9:])
+#         except ValueError:
+#             print("Invalid track")
+#     elif fun == 'audiosim':
+#         try:
+#             get_audio_features_NN(call[9:])
+#         except ValueError:
+#             print("Invalid track")

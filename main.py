@@ -68,8 +68,8 @@ def allArtistSongs(artistsInput):
             tracks = album['tracks']['items']
             for track in tracks:
                 trackID = track['id']
-                if (trackID not in trackIDs) and ("Movie Trailer" not in track['name']) and (
-                        "Interlude" not in track['name']) and ("(Live)" not in track['name']):
+                if (trackID not in trackIDs) and ("Movie Trailer" not in track['name']) \
+                        and ("(Live)" not in track['name']):
                     trackIDs.append(trackID)
                     albIDs.append(album['id'])
                     release_dates.append(album['release_date'])
@@ -91,6 +91,7 @@ def allArtistSongs(artistsInput):
                 audioFeature = audioFeatures[i]
                 songTitle = trueTrack['name'].replace('Bonus Track', '').replace('Single Version', '').replace(
                     'Album Version', '')
+                songTitle = re.sub("[\(\[].*?[\)\]]", "", songTitle)
                 time.sleep(1)
 
                 try:
@@ -108,7 +109,7 @@ def allArtistSongs(artistsInput):
                                     'speechiness': None, 'acousticness': None, 'instrumentalness': None, 'liveness':
                                         None, 'valence': None, 'tempo': None, 'duration_ms': None,
                                     'time_signature': None}
-
+                print(trueTrack['name'])
                 data.append([trueTrack['name'], artistName, trueTrack['album']['name'], albIDs[rd], release_dates[rd],
                              trueTrack['duration_ms'], trueTrack['id'], trueTrack['popularity'], trueTrack['explicit'],
                              audioFeature['acousticness'], audioFeature['danceability'], audioFeature['energy'],
@@ -125,12 +126,12 @@ def yipyip(artists):
     global acquiredAlbums
     artistList = artists.split(',')
 
-    # df = pd.DataFrame(columns=['title', 'artists', 'album', 'albumID', 'release_date', 'duration', 'spotifyID',
-    #                            'popularity', 'isExplicit', 'acousticness', 'danceability', 'energy',
-    #                            'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo',
-    #                            'time_signature', 'valence', 'lyrics'])
-    df = pd.read_csv(filepath + 'songs.csv')
-    del df['Unnamed: 0']
+    df = pd.DataFrame(columns=['title', 'artists', 'album', 'albumID', 'release_date', 'duration', 'spotifyID',
+                               'popularity', 'isExplicit', 'acousticness', 'danceability', 'energy',
+                               'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo',
+                               'time_signature', 'valence', 'lyrics'])
+    # df = pd.read_csv(filepath + 'songs.csv')
+    # del df['Unnamed: 0']
 
     acquiredAlbums = df['albumID'].unique()
     datas = allArtistSongs(artistList)
@@ -142,7 +143,12 @@ def yipyip(artists):
         j += 1
         if not data[5] in df.spotifyID.values:
             df.loc[i] = data
-    df.to_csv(filepath + 'songs.csv')
+    df.to_csv(filepath + 'songs_removed_title_parentheses.csv')
+
+    # Remove songs with duplicate lyrics or n/a fields and save to songs_clean.csv
+    df = df.drop_duplicates(subset='lyrics', keep="first")
+    df.dropna(inplace=True)
+    df.to_csv(filepath + 'songs_clean.csv')
 
 
 stoppers = ['quit', 'q']
