@@ -21,9 +21,15 @@ def open_file(name):
     del songs['Unnamed: 0']
 
 
-def pick_rows(col, row):
-    global songs
-    songs = songs.loc[songs[col].isin(row)]
+def get_songs():
+    return songs
+
+
+def pick_rows(cols, rows):
+    filtered = songs
+    for i in range(len(cols)):
+        filtered = filtered.loc[songs[cols[i]].isin([rows[i]])]
+    return filtered
 
 
 def create_lyrical_similarity():
@@ -67,9 +73,12 @@ def most_lyrically_similar(songName):
     input_idx = corpus.index(input_doc)
 
     result_idx = np.nanargmax(arr[input_idx])
-    print(songs.iloc[result_idx]['title'] + ' by ' + songs.iloc[result_idx]['artists'])
-    print("Similarity: ", arr[input_idx][result_idx])
-    print(corpus[result_idx][0:400])
+
+    # print(songs.iloc[result_idx]['title'] + ' by ' + songs.iloc[result_idx]['artists'])
+    # print("Similarity: ", arr[input_idx][result_idx])
+    # print(corpus[result_idx][0:400])
+    return {'artist': songs.iloc[result_idx]['artists'], 'song': songs.iloc[result_idx]['title'] + ' by ' + songs.iloc[result_idx]['artists'],
+            "similarity": arr[input_idx][result_idx], "lyrics": corpus[result_idx][0:800]}
 
 
 def create_audio_features_NN(num_neighbors=5, features=None):
@@ -104,7 +113,7 @@ def get_audio_features_NN(songName):
                 dists[i]))
 
 
-def lyric_generation():  # from https://stackabuse.com/text-generation-with-python-and-tensorflow-keras/
+def lyric_generation():  # doesn't work. from https://stackabuse.com/text-generation-with-python-and-tensorflow-keras/
     from nltk.tokenize import RegexpTokenizer
     from nltk.corpus import stopwords
     from keras.models import Sequential, load_model
@@ -196,6 +205,7 @@ def lyric_generation():  # from https://stackabuse.com/text-generation-with-pyth
 def lyricInfo():
     from nltk import word_tokenize
     from nltk import PorterStemmer
+    from nltk.corpus import stopwords
 
     lyrics = songs.lyrics.values
     lyricsJoined = ""
@@ -205,35 +215,47 @@ def lyricInfo():
     def stem_tokens(tokens):
         return [stemmer.stem(item) for item in tokens]
 
-    def normalize(text):
-        return stem_tokens(word_tokenize(text.lower().translate(remove_punctuation_map)))
+    def normalize(tokens):
+        return stem_tokens(tokens)
 
+    # Stems words and finds unique words, total words, and average words per song
     stemmer = PorterStemmer()
     remove_punctuation_map = dict((ord(char), None) for char in string.punctuation)
-    stemmedLyrics = normalize(lyricsJoined)
+    lyricTokens = word_tokenize(lyricsJoined.lower().translate(remove_punctuation_map))
+    stemmedLyrics = normalize(lyricTokens)
     stemLyricsSet = set(stemmedLyrics)
     uniqueWordCount = len(stemLyricsSet)
+    print("unique words", uniqueWordCount)
     totalNumWords = len(stemmedLyrics)
+    print("total words", totalNumWords)
     avgWordsPerSongs = totalNumWords / len(songs)
+    print("average words per song", avgWordsPerSongs)
 
     from collections import Counter
-    wordCount = Counter(stemmedLyrics)
-    print(wordCount.most_common(20))
+    allWordCount = Counter(stemmedLyrics)
+    print("all words count", allWordCount)
+    # removing stop words
+    all_stopwords = stopwords.words('english')
+    all_stopwords.extend(['yeah', 'dont', 'aint', 'cant', 'im', 'got', 'get', "’", "go", "like", "right", "know", "oh"])
+    lyrics_without_sw = [word for word in lyricTokens if not word in all_stopwords]
+    lyrics_without_sw_set = set(lyrics_without_sw)
+    sw_removed_wordcount = Counter(lyrics_without_sw)
+    print("no sw wordcount", sw_removed_wordcount)
+
 
 open_file('songs_clean')
-# create_lyrical_similarity()
-# create_audio_features_NN()
-pick_rows('artists', ['Post Malone'])
-lyricInfo()
+create_lyrical_similarity()
+create_audio_features_NN()
 
 # while True:
-#     call = input("\nopen file_name, clean, artist artist_names, lyricsim song_name, audiosim song_name => ")
+#     call = input("\nopen file_name, clean, artist artist_names, lyricsim song_name, audiosim song_name, lyricinfo => ")
 #     args = call.split(' ')
 #     fun = args[0]
 #     if fun == 'open':
 #         open_file(args[1])
 #     elif fun == 'artist':
-#         pick_artists([call[7:]])
+#         print([call[7:]])
+#         pick_rows('artists', [call[7:]])
 #     elif fun == 'lyricsim':
 #         try:
 #             most_lyrically_similar(call[9:])
@@ -244,3 +266,5 @@ lyricInfo()
 #             get_audio_features_NN(call[9:])
 #         except ValueError:
 #             print("Invalid track")
+#     elif fun == 'lyricinfo':
+#         lyricInfo()
