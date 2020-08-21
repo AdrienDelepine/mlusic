@@ -27,7 +27,8 @@ def create_app(test_config=None):
 
     @app.route('/', methods=['GET'])
     def home():
-        return "<h1>Mlusic</h1><p>This site is a prototype API for mlusic.</p>"
+        return "<h1>Mlusic</h1><p>This site is a prototype API for mlusic.</p>" \
+               "<p>/all, /songs, /lyricsim, /audiosim</p>"
 
     @app.route('/all', methods=['GET'])
     def api_all():
@@ -49,7 +50,7 @@ def create_app(test_config=None):
             rows.append(title)
 
         songs = ml.pick_rows(columns, rows)
-        return jsonify(songs.to_json())
+        return songs.to_json()
 
     @app.route('/lyricsim', methods=['GET'])
     def lyricsim():

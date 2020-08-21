@@ -126,12 +126,12 @@ def yipyip(artists):
     global acquiredAlbums
     artistList = artists.split(',')
 
-    df = pd.DataFrame(columns=['title', 'artists', 'album', 'albumID', 'release_date', 'duration', 'spotifyID',
-                               'popularity', 'isExplicit', 'acousticness', 'danceability', 'energy',
-                               'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo',
-                               'time_signature', 'valence', 'lyrics'])
-    # df = pd.read_csv(filepath + 'songs.csv')
-    # del df['Unnamed: 0']
+    # df = pd.DataFrame(columns=['title', 'artists', 'album', 'albumID', 'release_date', 'duration', 'spotifyID',
+    #                            'popularity', 'isExplicit', 'acousticness', 'danceability', 'energy',
+    #                            'instrumentalness', 'key', 'liveness', 'loudness', 'mode', 'speechiness', 'tempo',
+    #                            'time_signature', 'valence', 'lyrics'])
+    df = pd.read_csv(filepath + 'songs.csv')
+    del df['Unnamed: 0']
 
     acquiredAlbums = df['albumID'].unique()
     datas = allArtistSongs(artistList)
@@ -143,7 +143,7 @@ def yipyip(artists):
         j += 1
         if not data[5] in df.spotifyID.values:
             df.loc[i] = data
-    df.to_csv(filepath + 'songs_removed_title_parentheses.csv')
+    df.to_csv(filepath + 'songs.csv')
 
     # Remove songs with duplicate lyrics or n/a fields and save to songs_clean.csv
     df = df.drop_duplicates(subset='lyrics', keep="first")
